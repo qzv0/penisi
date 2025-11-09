@@ -1,0 +1,296 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+
+local LocalPlayer = Players.LocalPlayer
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SuperRingPartsGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 300, 0, 350)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
+MainFrame.BorderSizePixel = 1
+MainFrame.BorderColor3 = Color3.fromRGB(50, 50, 50)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Parent = ScreenGui
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.Text = "Super Ring Parts by Sharik"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 18
+Title.Parent = MainFrame
+
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 25, 0, 25)
+CloseButton.Position = UDim2.new(1, -30, 0, 5)
+CloseButton.Text = "X"
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Font = Enum.Font.SourceSansBold
+CloseButton.TextSize = 14
+CloseButton.Parent = MainFrame
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0.8, 0, 0, 40)
+ToggleButton.Position = UDim2.new(0.1, 0, 0.12, 0)
+ToggleButton.Text = "Ring Off"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Font = Enum.Font.SourceSans
+ToggleButton.TextSize = 16
+ToggleButton.Parent = MainFrame
+
+local config = {
+    radius = 1000,
+    height = 1,
+    rotationSpeed = 80,
+    attractionStrength = 2500,
+}
+
+local function saveConfig()
+    local configStr = HttpService:JSONEncode(config)
+    writefile("SuperRingPartsConfig.txt", configStr)
+end
+
+local function loadConfig()
+    if isfile("SuperRingPartsConfig.txt") then
+        local configStr = readfile("SuperRingPartsConfig.txt")
+        config = HttpService:JSONDecode(configStr)
+    end
+end
+
+loadConfig()
+
+local function createControl(name, positionY, color, labelText, defaultValue, callback)
+    local ControlFrame = Instance.new("Frame")
+    ControlFrame.Size = UDim2.new(0.8, 0, 0, 60)
+    ControlFrame.Position = UDim2.new(0.1, 0, positionY, 0)
+    ControlFrame.BackgroundTransparency = 1
+    ControlFrame.Parent = MainFrame
+
+    local Display = Instance.new("TextLabel")
+    Display.Size = UDim2.new(1, 0, 0, 25)
+    Display.Position = UDim2.new(0, 0, 0, 0)
+    Display.Text = labelText .. ": " .. defaultValue
+    Display.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    Display.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Display.Font = Enum.Font.SourceSans
+    Display.TextSize = 14
+    Display.Parent = ControlFrame
+
+    local ButtonFrame = Instance.new("Frame")
+    ButtonFrame.Size = UDim2.new(1, 0, 0, 30)
+    ButtonFrame.Position = UDim2.new(0, 0, 0.45, 0)
+    ButtonFrame.BackgroundTransparency = 1
+    ButtonFrame.Parent = ControlFrame
+
+    local DecreaseButton = Instance.new("TextButton")
+    DecreaseButton.Size = UDim2.new(0.2, 0, 1, 0)
+    DecreaseButton.Position = UDim2.new(0, 0, 0, 0)
+    DecreaseButton.Text = "-10"
+    DecreaseButton.BackgroundColor3 = color
+    DecreaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    DecreaseButton.Font = Enum.Font.SourceSans
+    DecreaseButton.TextSize = 12
+    DecreaseButton.Parent = ButtonFrame
+
+    local TextBox = Instance.new("TextBox")
+    TextBox.Size = UDim2.new(0.6, 0, 1, 0)
+    TextBox.Position = UDim2.new(0.2, 0, 0, 0)
+    TextBox.PlaceholderText = "Enter value"
+    TextBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TextBox.Font = Enum.Font.SourceSans
+    TextBox.TextSize = 12
+    TextBox.Parent = ButtonFrame
+
+    local IncreaseButton = Instance.new("TextButton")
+    IncreaseButton.Size = UDim2.new(0.2, 0, 1, 0)
+    IncreaseButton.Position = UDim2.new(0.8, 0, 0, 0)
+    IncreaseButton.Text = "+10"
+    IncreaseButton.BackgroundColor3 = color
+    IncreaseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    IncreaseButton.Font = Enum.Font.SourceSans
+    IncreaseButton.TextSize = 12
+    IncreaseButton.Parent = ButtonFrame
+
+    DecreaseButton.MouseButton1Click:Connect(function()
+        local value = tonumber(Display.Text:match("%d+"))
+        value = math.max(0, value - 10)
+        Display.Text = labelText .. ": " .. value
+        callback(value)
+        saveConfig()
+    end)
+
+    IncreaseButton.MouseButton1Click:Connect(function()
+        local value = tonumber(Display.Text:match("%d+"))
+        value = math.min(10000, value + 10)
+        Display.Text = labelText .. ": " .. value
+        callback(value)
+        saveConfig()
+    end)
+
+    TextBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local newValue = tonumber(TextBox.Text)
+            if newValue then
+                newValue = math.clamp(newValue, 0, 10000)
+                Display.Text = labelText .. ": " .. newValue
+                TextBox.Text = ""
+                callback(newValue)
+                saveConfig()
+            else
+                TextBox.Text = ""
+            end
+        end
+    end)
+end
+
+createControl("Radius", 0.28, Color3.fromRGB(200, 100, 0), "Radius", config.radius, function(value)
+    config.radius = value
+end)
+
+createControl("Height", 0.45, Color3.fromRGB(100, 0, 200), "Height", config.height, function(value)
+    config.height = value
+end)
+
+createControl("RotationSpeed", 0.62, Color3.fromRGB(0, 100, 200), "Rotation Speed", config.rotationSpeed, function(value)
+    config.rotationSpeed = value
+end)
+
+createControl("AttractionStrength", 0.79, Color3.fromRGB(200, 0, 0), "Attraction Strength", config.attractionStrength, function(value)
+    config.attractionStrength = value
+end)
+
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+local Workspace = game:GetService("Workspace")
+
+local ringPartsEnabled = false
+local parts = {}
+local connection
+
+local function RetainPart(Part)
+    if Part:IsA("BasePart") and not Part.Anchored and Part:IsDescendantOf(workspace) then
+        if Part.Parent == LocalPlayer.Character or Part:IsDescendantOf(LocalPlayer.Character) then
+            return false
+        end
+        Part.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0, 0, 0)
+        Part.CanCollide = false
+        return true
+    end
+    return false
+end
+
+local function addPart(part)
+    if RetainPart(part) then
+        if not table.find(parts, part) then
+            table.insert(parts, part)
+        end
+    end
+end
+
+local function removePart(part)
+    local index = table.find(parts, part)
+    if index then
+        table.remove(parts, index)
+    end
+end
+
+local function startRingParts()
+    for _, part in pairs(workspace:GetDescendants()) do
+        addPart(part)
+    end
+
+    workspace.DescendantAdded:Connect(addPart)
+    workspace.DescendantRemoving:Connect(removePart)
+
+    connection = RunService.Heartbeat:Connect(function()
+        if not ringPartsEnabled then return end
+        
+        local humanoidRootPart = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            local tornadoCenter = humanoidRootPart.Position
+            for _, part in pairs(parts) do
+                if part.Parent and not part.Anchored then
+                    local pos = part.Position
+                    local distance = (Vector3.new(pos.X, tornadoCenter.Y, pos.Z) - tornadoCenter).Magnitude
+                    local angle = math.atan2(pos.Z - tornadoCenter.Z, pos.X - tornadoCenter.X)
+                    local newAngle = angle + math.rad(config.rotationSpeed)
+                    local targetPos = Vector3.new(
+                        tornadoCenter.X + math.cos(newAngle) * math.min(config.radius, distance),
+                        tornadoCenter.Y + (config.height * (math.abs(math.sin((pos.Y - tornadoCenter.Y) / config.height)))),
+                        tornadoCenter.Z + math.sin(newAngle) * math.min(config.radius, distance)
+                    )
+                    local directionToTarget = (targetPos - part.Position).unit
+                    part.Velocity = directionToTarget * config.attractionStrength
+                end
+            end
+        end
+    end)
+end
+
+ToggleButton.MouseButton1Click:Connect(function()
+    ringPartsEnabled = not ringPartsEnabled
+    ToggleButton.Text = ringPartsEnabled and "Ring On" or "Ring Off"
+    ToggleButton.BackgroundColor3 = ringPartsEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+end)
+
+CloseButton.MouseButton1Click:Connect(function()
+    ringPartsEnabled = false
+    if connection then
+        connection:Disconnect()
+    end
+    parts = {}
+    ScreenGui:Destroy()
+end)
+
+startRingParts()
+
+StarterGui:SetCore("SendNotification", {
+    Title = "Super Ring Parts",
+    Text = "Loaded by Sharik",
+    Duration = 3
+})
